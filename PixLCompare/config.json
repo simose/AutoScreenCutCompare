@@ -1,0 +1,20 @@
+{
+  "imageDirectory": "D:\\AutoScreenCut",
+  "filePatterns": {
+    "suffixA": "_A_",
+    "suffixB": "_B_",
+    "fileExtension": ".png"
+  },
+  "comparison": {
+    "threshold": 0.1,
+    "includeAA": true,
+    "alpha": 1,
+    "diffMask": true,
+    "diffColor": [255, 0, 0],
+    "aaColor": [255, 255, 0]
+  },
+  "output": {
+    "diffPrefix": "diff_",
+    "generateDiffImages": true
+  }
+}
