@@ -31,10 +31,23 @@ def check_virtual_env():
     """检查是否在虚拟环境中（可选，不强制要求）"""
     # 检查是否在虚拟环境中
     in_venv = hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+
+    # 读取环境变量 VENV_PATH（仅用于提示，不做自动激活）
+    venv_path_env = os.environ.get("VENV_PATH")
+
     if in_venv:
         print("✅ 检测到虚拟环境已激活")
+        try:
+            print(f"   当前解释器: {sys.executable}")
+            if venv_path_env:
+                print(f"   环境变量 VENV_PATH: {venv_path_env}")
+        except Exception:
+            pass
     else:
         print("⚠️  未检测到虚拟环境（建议使用虚拟环境，但不强制要求）")
+        if venv_path_env:
+            print(f"   检测到环境变量 VENV_PATH={venv_path_env}")
+            print("   提示：请先手动激活该虚拟环境后再运行本脚本")
     return True  # 不强制要求虚拟环境，只做提示
 
 def check_dependencies():
@@ -51,12 +64,31 @@ def check_dependencies():
             print(f"❌ {package} 未安装")
     
     if missing_packages:
-        print(f"\n需要安装的包: {', '.join(missing_packages)}")
-        print("请运行以下命令安装:")
-        print(f"pip install {' '.join(missing_packages)}")
-        if 'playwright' in missing_packages:
-            print("playwright install chromium")
-        return False
+        print(f"\n🔧 正在安装缺失的包: {', '.join(missing_packages)}")
+        # 使用阿里云镜像加速安装
+        pip_cmd = [sys.executable, '-m', 'pip', 'install', '-i', 'https://mirrors.aliyun.com/pypi/simple', '--trusted-host', 'mirrors.aliyun.com'] + missing_packages
+        try:
+            result = subprocess.run(pip_cmd, capture_output=True, text=True, timeout=600)
+            if result.returncode != 0:
+                print("❌ 通过阿里镜像安装依赖失败")
+                print(result.stdout)
+                print(result.stderr)
+                return False
+            # 安装后再次校验
+            failed = []
+            for package in missing_packages:
+                try:
+                    __import__(package)
+                except ImportError:
+                    failed.append(package)
+            if failed:
+                print(f"❌ 以下包仍未安装成功: {', '.join(failed)}")
+                return False
+            else:
+                print("✅ 依赖安装完成")
+        except Exception as e:
+            print(f"❌ 安装依赖时发生错误: {e}")
+            return False
     
     return True
 

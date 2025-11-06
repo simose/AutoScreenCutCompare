@@ -33,6 +33,9 @@ def check_dependencies() -> bool:
     if missing_packages:
         print(f"\n需要安装的包: {', '.join(missing_packages)}")
         print("请运行以下命令安装 (优先使用阿里云镜像):")
+        print("# 如果pip版本较低，建议先升级pip（使用阿里云镜像）:")
+        print("python -m pip install --upgrade pip -i https://mirrors.aliyun.com/pypi/simple")
+        print("# 安装依赖包:")
         print(f"pip install {' '.join(missing_packages)} -i https://mirrors.aliyun.com/pypi/simple")
         if 'playwright' in missing_packages:
             print("# 安装浏览器内核（使用国内镜像源，加速下载）")
