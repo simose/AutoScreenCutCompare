@@ -1,50 +1,81 @@
-## AutoScreenCutCompare - UI自动化截图与图像对比
+## AutoScreenCutCompare - 基于pixelmatch自动网页截图像素比对
 
 ### 项目简介
 
 基于 Python + Playwright 的 UI 自动化截图工具，采用 PO 模式（Page Object Model）。支持 A/B 两套截图方案，并在 B 流程完成后自动调用像素级图片对比（Node.js + pixelmatch）。
 
-*
+本工具提供两种截图模式：
+- **滚动截图** (默认): 模拟用户滚动，逐屏截取并保存为连续编号的图片。
+- **整页截图**: 利用 Playwright 的 `full_page=True` 选项，一次性截取整个网页。
+
+您可以通过修改配置文件轻松切换模式。
 
 ### 实战结果比对
 
 [案例1](https://github.com/mapbox/pixelmatch/issues/127)（从源码问题中复制来的）：
 图A001
-![请添加图片描述](https://i-blog.csdnimg.cn/direct/d78d0f7314f642208eb72afc8625f188.png)
+<img width="1080" height="500" alt="1" src="https://github.com/user-attachments/assets/3cb0404e-38e8-4f51-98e3-e501c920dfa4" />
+
+
 图B001
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/d46fd10fa7a044dabdc701b6c9954d27.png)
+<img width="1080" height="500" alt="2" src="https://github.com/user-attachments/assets/80b838f4-d65b-436a-9aee-e34c31ccc3c1" />
+
+
 B对于基准A的对比结果
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/2c227c199c23450e867433bc0e462b6f.png)
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/43d09182384947a2a063d9ee140f5f57.png)
+<img width="1080" height="500" alt="3" src="https://github.com/user-attachments/assets/457c9727-f558-431d-bfb8-2d7f3d14829d" />
+
+
+运行结果截图
+<img width="948" height="392" alt="4" src="https://github.com/user-attachments/assets/4356a3e5-9a40-4d56-b46b-461fcd0cce40" />
+
 
 对比结果日志输出
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/eaf69496d0e4496381d2f4c3feff8b6b.png)
+
+<img width="387" height="911" alt="5" src="https://github.com/user-attachments/assets/430cc301-c2f5-4c90-b92a-4034d2bf16bf" />
+
 
 ### 项目落地过程中存在的问题
 
 ​
-吸顶变换的滚动条
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/1aaff8d8a5974f598425e363cbfba9c9.png)
+动态变化-吸顶滚动条
+<img width="1080" height="500" alt="6" src="https://github.com/user-attachments/assets/632fdbeb-7e5c-482b-9839-c364cd07285f" />
+
 
 动态变化-倒计时
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/b969f6788fd54af7a64a686a711e971f.png)
+<img width="1080" height="500" alt="7" src="https://github.com/user-attachments/assets/6361b867-395b-40b4-91f0-8b8e0f898bf8" />
+
+动态变化-动画效果
+<img width="1080" height="500" alt="9" src="https://github.com/user-attachments/assets/0d0ca664-602a-4f4b-a221-2f19cd81839d" />
 
 预加载的弹窗
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/6a5e478db97349d3a8392a5d36e83b57.png)
+<img width="1080" height="500" alt="8" src="https://github.com/user-attachments/assets/eeecc9d7-32f2-41ae-920b-5005ee4a8c16" />
 
-动态的动画效果
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/74342fc9d9424a5ba694fca01e59a7e4.png)
+
 
 
 ### 关键特性
 
+- **灵活截图模式**: 支持可配置的整页截图或滚动分屏截图，满足不同测试场景的需求。
 - **PO 模式**：`pages/base_page.py` 封装页面操作，代码清晰易维护
 - **多 URL 批量测试**：从 `config/config.py` 读取 URL 列表
-- **滚动分屏截图**：自动连续编号保存，命名清晰
 - **A/B 流程控制**：
   - 输入 A：仅截图，不做对比
   - 输入 B：截图完成后执行 `PixLCompare/run_compare.py` 进行对比
 - **2秒操作节拍**：每步操作前预留等待（在测试/页面操作中实现）
+
+### 截图模式配置
+
+您可以通过修改 `config/config.py` 文件中的 `USE_FULL_PAGE_SCREENSHOT` 选项来选择截图模式：
+
+```python
+# 是否使用整页截图模式 (True: 整页截图, False: 滚动截图)
+USE_FULL_PAGE_SCREENSHOT = False
+```
+
+- **滚动截图** (`False`): 模拟用户滚动，逐屏截取并保存为 `homepage_A_001.png`, `homepage_A_002.png` 等连续编号的图片。适用于内容较长、有懒加载的页面。
+- **整页截图** (`True`): 一次性截取整个网页，保存为 `homepage_A_full.png`。适用于需要完整页面视图的对比场景。
+
+**注意**: 无论使用哪种模式，截图的命名规范（A/B类型、前缀）都保持一致，确保与后续的像素对比工具兼容。
  
 
 ### 目录结构（当前）
@@ -53,30 +84,31 @@ B对于基准A的对比结果
 AutoScreenCutCompare/
 ├── config/
 │   ├── __init__.py
-│   └── config.py              # URL配置和截图目录配置
+│   └── config.py                    # URL配置和截图目录配置
 ├── pages/
 │   ├── __init__.py
-│   └── base_page.py           # 页面操作基类（PO模式）
+│   └── base_page.py                 # 页面操作基类（PO模式）
 ├── ScreenShot/
 │   ├── __init__.py
-│   └── screenshots.py         # pytest测试用例
+│   ├── full_page_screenshots.py     # 全屏截图
+│   └── screenshots.py               # 翻页截图
 ├── utils/
 │   ├── __init__.py
-│   └── report_generator.py    # 报告生成工具
+│   └── report_generator.py          # 报告生成工具
 ├── PixLCompare/
-│   ├── config.json            # 图片对比配置
-│   ├── diff_coords.json       # 差异坐标记录
-│   ├── package.json           # Node.js依赖配置
-│   ├── package-lock.json      # 依赖锁定文件
-│   ├── README.md              # PixLCompare模块说明
-│   ├── CONFIG_README.md       # 配置说明文档
-│   ├── run_compare.py         # 图片对比执行脚本
+│   ├── config.json                  # 图片对比配置
+│   ├── diff_coords.json             # 差异坐标记录
+│   ├── package.json                 # Node.js依赖配置
+│   ├── package-lock.json            # 依赖锁定文件
+│   ├── README.md                    # PixLCompare模块说明
+│   ├── CONFIG_README.md             # 配置说明文档
+│   ├── run_compare.py               # 图片对比执行脚本
 │   └── scripts/
 │       └── node/
-│           └── compare.js     # Node.js图片对比脚本
-├── env_checks.py              # 环境检查模块（虚拟环境、依赖、浏览器等）
-├── Plan_execut.py             # 执行计划模块（A/B类型选择、测试执行、对比执行）
-├── run_auto_screen_cut.py     # 主执行脚本（一键运行入口）
+│           └── compare.js           # Node.js图片对比脚本
+├── env_checks.py                    # 环境检查模块（虚拟环境、依赖、浏览器等）
+├── Plan_execut.py                   # 执行计划模块（A/B类型选择、测试执行、对比执行）
+├── run_auto_screen_cut.py           # 主执行脚本（一键运行入口）
 └── README.md
 ```
 
@@ -224,9 +256,14 @@ pytest ScreenShot/screenshots.py -v -s
 
 ### 截图与命名规则
 
-- 主页：`homepage_{A|B}_001.png`
-- 其他页面：使用 URL 最低层级路径（`-` → `_`），如 `solar_generator_A_001.png`
-- 每屏递增编号：`_001.png`, `_002.png`, ...
+- **滚动截图模式**:
+  - 主页：`homepage_{A|B}_001.png`
+  - 其他页面：使用 URL 最低层级路径（`-` → `_`），如 `solar_generator_A_001.png`
+  - 每屏递增编号：`_001.png`, `_002.png`, ...
+
+- **整页截图模式**:
+  - 主页：`homepage_{A|B}_full.png`
+  - 其他页面：使用 URL 最低层级路径（`-` → `_`），如 `solar_generator_A_full.png`
 
 ### A/B 流程说明（重要）
 

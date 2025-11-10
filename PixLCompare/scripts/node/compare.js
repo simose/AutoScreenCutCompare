@@ -47,62 +47,76 @@ function findMatchingImagePairs() {
   const files = fs.readdirSync(imageDir);
   const pairs = [];
   
-  // 按前缀和序号分组
+  // 使用更灵活的匹配策略：只要A和B类型的文件前缀和后缀完全相等就匹配
   const groupMap = new Map();
   
   files.forEach(file => {
     if (file.endsWith(fileExtension)) {
-      // 动态匹配模式：支持两种格式
-      // 格式1：前缀_A_序号.png (例如：jackery__A_001.png, 20250925_A_001.png)
-      // 格式2：前缀A序号.png (例如：20250925A001.png, jackeryA001.png)
-      let match = file.match(/^(.+)_([AB])_(\d+)\.png$/);
-      if (!match) {
-        match = file.match(/^(.+)([AB])(\d+)\.png$/);
-      }
+      // 查找文件名中的A或B标识
+      const aMatch = file.match(/^(.+)A(.+)\.png$/);
+      const bMatch = file.match(/^(.+)B(.+)\.png$/);
       
-      if (match) {
-        const [, prefix, type, number] = match;
-        const key = `${prefix}_${number}`; // 使用前缀+序号作为唯一键
+      if (aMatch) {
+        // A类型文件
+        const [, prefix, suffix] = aMatch;
+        const key = `${prefix}_${suffix}`; // 使用前缀+后缀作为唯一键
         
         if (!groupMap.has(key)) {
-          groupMap.set(key, { prefix, number });
+          groupMap.set(key, { prefix, suffix, aFile: null, bFile: null });
         }
+        groupMap.get(key).aFile = file;
+      } else if (bMatch) {
+        // B类型文件
+        const [, prefix, suffix] = bMatch;
+        const key = `${prefix}_${suffix}`; // 使用前缀+后缀作为唯一键
         
-        groupMap.get(key)[type] = file;
+        if (!groupMap.has(key)) {
+          groupMap.set(key, { prefix, suffix, aFile: null, bFile: null });
+        }
+        groupMap.get(key).bFile = file;
       }
     }
   });
   
   // 构建配对列表
   groupMap.forEach((data, key) => {
-    if (data.A && data.B) {
+    if (data.aFile && data.bFile) {
       pairs.push({
         prefix: data.prefix,
-        number: data.number,
-        imgA: path.join(imageDir, data.A),
-        imgB: path.join(imageDir, data.B)
+        suffix: data.suffix,
+        key: key,
+        imgA: path.join(imageDir, data.aFile),
+        imgB: path.join(imageDir, data.bFile)
       });
     }
   });
   
-  // 按前缀和序号排序
+  // 按前缀和后缀排序
   return pairs.sort((a, b) => {
     if (a.prefix !== b.prefix) {
       return a.prefix.localeCompare(b.prefix);
     }
-    return parseInt(a.number) - parseInt(b.number);
+    return a.suffix.localeCompare(b.suffix);
   });
 }
 
 // 比较单对图片
 function compareImagePair(pair) {
-  console.log(`\n=== 比较图片对 [${pair.prefix}] ${pair.number} ===`);
+  console.log(`\n=== 比较图片对 [${pair.prefix}] ${pair.suffix} ===`);
   console.log(`图片A: ${path.basename(pair.imgA)}`);
   console.log(`图片B: ${path.basename(pair.imgB)}`);
   
   try {
     const img1 = PNG.sync.read(fs.readFileSync(pair.imgA));
     const img2 = PNG.sync.read(fs.readFileSync(pair.imgB));
+    
+    // 检查图片尺寸是否匹配
+    if (img1.width !== img2.width || img1.height !== img2.height) {
+      console.log(`⚠️ 图片尺寸不匹配: A图 ${img1.width}x${img1.height}, B图 ${img2.width}x${img2.height}`);
+      console.log('跳过此对比对');
+      return { prefix: pair.prefix, suffix: pair.suffix, hasDiff: false, diffPixels: 0, error: '尺寸不匹配' };
+    }
+    
     const { width, height } = img1;
     const diff = new PNG({ width, height });
 
@@ -120,7 +134,7 @@ function compareImagePair(pair) {
     // 只有当存在差异时才生成差异图片
     if (numDiffPixels > 0) {
       console.log('检测到差异，正在生成差异图片...');
-      const outputPath = path.join(imageDir, `${config.output.diffPrefix}${pair.prefix}_${pair.number}.png`);
+      const outputPath = path.join(imageDir, `${config.output.diffPrefix}${pair.prefix}_${pair.suffix}.png`);
       
       // 如果差异图片已存在，先删除旧版本
       if (fs.existsSync(outputPath)) {
@@ -145,78 +159,76 @@ function compareImagePair(pair) {
       }
       fs.writeFileSync(outputPath, PNG.sync.write(overlay));
       console.log(`差异图片已保存到: ${outputPath}`);
-      return { prefix: pair.prefix, number: pair.number, hasDiff: true, diffPixels: numDiffPixels, outputPath };
+      return { prefix: pair.prefix, suffix: pair.suffix, hasDiff: true, diffPixels: numDiffPixels, outputPath };
     } else {
       console.log('未检测到差异，跳过差异图片生成');
-      return { prefix: pair.prefix, number: pair.number, hasDiff: false, diffPixels: 0 };
+      return { prefix: pair.prefix, suffix: pair.suffix, hasDiff: false, diffPixels: 0 };
     }
   } catch (error) {
-    console.error(`比较图片对 [${pair.prefix}] ${pair.number} 时出错:`, error.message);
-    return { prefix: pair.prefix, number: pair.number, hasDiff: false, diffPixels: 0, error: error.message };
+    console.error(`比较图片对 [${pair.prefix}] ${pair.suffix} 时出错:`, error.message);
+    return { prefix: pair.prefix, suffix: pair.suffix, hasDiff: false, diffPixels: 0, error: error.message };
   }
 }
 
-// 主执行函数
+// 主函数
 function main() {
-  console.log('🖼️ 开始扫描图片文件...');
-  console.log('📋 当前配置:');
-  console.log(`  扫描目录: ${imageDir}`);
-  console.log(`  文件扩展名: ${fileExtension}`);
-  console.log(`  比较阈值: ${config.comparison.threshold}`);
-  console.log(`  差异图片前缀: ${config.output.diffPrefix}`);
-  console.log('匹配模式:');
-  console.log('  格式1: 任意前缀_A_序号.png 与 相同前缀_B_序号.png');
-  console.log('  格式2: 任意前缀A序号.png 与 相同前缀B序号.png');
+  console.log('开始图片对比...');
+  console.log(`图片目录: ${imageDir}`);
+  console.log(`差异图片前缀: ${config.output.diffPrefix}`);
   
   const pairs = findMatchingImagePairs();
   
   if (pairs.length === 0) {
-    console.log('❌ 未找到匹配的图片对');
+    console.log('未找到可对比的图片对，请确保图片命名格式正确。');
+    console.log('支持的格式：');
+    console.log('1. 任意前缀_A_任意后缀.png 与 相同前缀_B_相同后缀.png');
+    console.log('2. 例如：homepage_A_full.png vs homepage_B_full.png');
+    console.log('3. 例如：test_A_001.png vs test_B_001.png');
+    console.log('4. 例如：long_prefix_A_123.png vs long_prefix_B_123.png');
     return;
   }
   
-  console.log(`✅ 找到 ${pairs.length} 对匹配的图片`);
-  
-  // 按前缀分组显示
-  const prefixGroups = {};
-  pairs.forEach(pair => {
-    if (!prefixGroups[pair.prefix]) {
-      prefixGroups[pair.prefix] = [];
-    }
-    prefixGroups[pair.prefix].push(pair);
-  });
-  
-  console.log('\n📋 发现的图片对分组:');
-  Object.keys(prefixGroups).forEach(prefix => {
-    console.log(`  前缀 "${prefix}": ${prefixGroups[prefix].length} 对`);
-  });
+  console.log(`\n找到 ${pairs.length} 对可对比的图片`);
   
   const results = [];
-  pairs.forEach(pair => {
+  let totalDiffPixels = 0;
+  let pairsWithDiff = 0;
+  
+  for (const pair of pairs) {
     const result = compareImagePair(pair);
     results.push(result);
-  });
-  
-  // 输出总结
-  console.log('\n=== 比较结果总结 ===');
-  const withDiff = results.filter(r => r.hasDiff);
-  const withoutDiff = results.filter(r => !r.hasDiff);
-  
-  console.log(`总比较对数: ${results.length}`);
-  console.log(`有差异的对数: ${withDiff.length}`);
-  console.log(`无差异的对数: ${withoutDiff.length}`);
-  
-  if (withDiff.length > 0) {
-    console.log('\n有差异的图片对:');
-    withDiff.forEach(r => {
-      console.log(`  [${r.prefix}] 序号 ${r.number}: ${r.diffPixels} 个差异像素`);
-    });
+    
+    if (result.hasDiff) {
+      pairsWithDiff++;
+      totalDiffPixels += result.diffPixels;
+    }
   }
   
-  if (withoutDiff.length > 0) {
-    console.log('\n无差异的图片对:');
-    withoutDiff.forEach(r => {
-      console.log(`  [${r.prefix}] 序号 ${r.number}: 完全一致`);
+  // 输出统计结果
+  console.log('\n=== 对比完成 ===');
+  console.log(`总对比对数: ${pairs.length}`);
+  console.log(`有差异的对数: ${pairsWithDiff}`);
+  console.log(`无差异的对数: ${pairs.length - pairsWithDiff}`);
+  console.log(`总差异像素数: ${totalDiffPixels}`);
+  
+  // 输出详细结果
+  console.log('\n=== 详细结果 ===');
+  results.forEach(result => {
+    if (result.error) {
+      console.log(`❌ [${result.prefix}] ${result.suffix}: ${result.error}`);
+    } else if (result.hasDiff) {
+      console.log(`🔍 [${result.prefix}] ${result.suffix}: 发现 ${result.diffPixels} 个差异像素`);
+    } else {
+      console.log(`✅ [${result.prefix}] ${result.suffix}: 无差异`);
+    }
+  });
+  
+  // 如果有差异，输出差异图片信息
+  const diffResults = results.filter(r => r.hasDiff && !r.error);
+  if (diffResults.length > 0) {
+    console.log('\n=== 差异图片 ===');
+    diffResults.forEach(result => {
+      console.log(`🔴 ${path.basename(result.outputPath)}`);
     });
   }
 }

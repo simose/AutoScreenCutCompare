@@ -63,6 +63,23 @@ def run_image_compare():
             return False
         
         print(f"✅ 找到图片目录: {img_dir}")
+
+        # 在比较前删除旧的差异图片
+        try:
+            diff_prefix = config["output"]["diffPrefix"]
+            deleted_count = 0
+            for filename in os.listdir(img_dir):
+                if filename.startswith(diff_prefix) and filename.endswith('.png'):
+                    file_path = os.path.join(img_dir, filename)
+                    os.remove(file_path)
+                    deleted_count += 1
+            if deleted_count > 0:
+                print(f"🧹 清理完成: 删除了 {deleted_count} 个旧的差异图片。")
+                print("📋 支持的对比格式:")
+                print("   - 滚动截图: 前缀_A_序号.png vs 前缀_B_序号.png")
+                print("   - 全屏截图: 前缀_A_full.png vs 前缀_B_full.png")
+        except Exception as e:
+            print(f"⚠️ 清理旧差异文件时出错: {e}")
         
         # 执行 Node.js 脚本
         print("\n🚀 开始执行图片比较...")
@@ -117,7 +134,17 @@ def run_image_compare():
 
 def main():
     """
-    主函数
+    主函数：执行图片对比
+    
+    支持格式（只要前缀和后缀相同即可对比）：
+    1. 任意前缀_A_任意后缀.png vs 相同前缀_B_相同后缀.png
+    2. 例如：
+       - homepage_A_full.png vs homepage_B_full.png (全屏截图)
+       - test_A_001.png vs test_B_001.png (滚动截图)
+       - long_prefix_A_123.png vs long_prefix_B_123.png
+       - 01_A_001.png vs 01_B_001.png
+    
+    对比前会自动删除旧的差异图片文件
     """
     print("🖼️ 图片比较脚本运行器")
     print("=" * 50)
