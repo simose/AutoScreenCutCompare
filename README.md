@@ -118,7 +118,6 @@ AutoScreenCutCompare/
 - Node.js 16+
 - Playwright + 浏览器内核
 - pytest
-- 虚拟环境：`D:\Cursor\UK0519\.venv`
 
 ### 安装与初始化
 
@@ -171,7 +170,7 @@ python run_auto_screen_cut.py
 ```
 python run_auto_screen_cut_compare.py --type B        # 直接指定类型为B
 python run_auto_screen_cut_compare.py --type A        # 直接指定类型为A
-python run_auto_screen_cut_compare.py --type A --skip-compare  # A类型但跳过对比
+python run_auto_screen_cut_compare.py --type A --skip-compare  # 类型为A，跳过对比
 ```
 
 流程：
@@ -198,11 +197,11 @@ python run_auto_screen_cut_compare.py --type A --skip-compare  # A类型但跳�
 说明：可通过多种方式传递A/B类型：
 ```
 # 方式1：命令行参数（推荐）
-python run_auto_screen_cut.py --type B
+python run_auto_screen_cut_compare.py --type B
 
 # 方式2：环境变量
-set PREFIX_TYPE=B && python run_auto_screen_cut.py  # Windows CMD
-$env:PREFIX_TYPE="B"; python run_auto_screen_cut.py  # PowerShell
+set PREFIX_TYPE=B && python run_auto_screen_cut_compare.py  # Windows CMD
+$env:PREFIX_TYPE="B"; python run_auto_screen_cut_compare.py  # PowerShell
 
 # 方式3：交互式输入（20秒倒计时）
 python run_auto_screen_cut.py
@@ -307,7 +306,7 @@ pytest run_auto_screen_cut_compare.py -v -s
   - `create_screenshot_dir`：创建截图目录
   - `check_pixlcompare_env`：检查Node.js和PixLCompare依赖
 
-- **`run_auto_screen_cut.py`**（主执行脚本）：
+- **`run_auto_screen_cut_compare.py`**（主执行脚本）：
   - 环境检查（调用 `env_checks.py`）
   - 获取截图类型（调用 `Plan_execut.ask_prefix_type`）
   - 执行测试（调用 `Plan_execut.run_tests`）
