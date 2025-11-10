@@ -27,29 +27,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-compare", action="store_true", help="跳过图片对比（即使选择了 B）")
     return parser.parse_args()
 
-def check_virtual_env():
-    """检查是否在虚拟环境中（可选，不强制要求）"""
-    # 检查是否在虚拟环境中
-    in_venv = hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
-
-    # 读取环境变量 VENV_PATH（仅用于提示，不做自动激活）
-    venv_path_env = os.environ.get("VENV_PATH")
-
-    if in_venv:
-        print("✅ 检测到虚拟环境已激活")
-        try:
-            print(f"   当前解释器: {sys.executable}")
-            if venv_path_env:
-                print(f"   环境变量 VENV_PATH: {venv_path_env}")
-        except Exception:
-            pass
-    else:
-        print("⚠️  未检测到虚拟环境（建议使用虚拟环境，但不强制要求）")
-        if venv_path_env:
-            print(f"   检测到环境变量 VENV_PATH={venv_path_env}")
-            print("   提示：请先手动激活该虚拟环境后再运行本脚本")
-    return True  # 不强制要求虚拟环境，只做提示
-
 def check_dependencies():
     """检查必要的依赖包"""
     required_packages = ['pytest', 'playwright']
@@ -191,9 +168,6 @@ def main():
     
     # 检查环境
     print("🔍 检查运行环境...")
-    if not check_virtual_env():
-        print("❌ 虚拟环境检查失败，请手动激活虚拟环境后重试")
-        return 1
     
     if not check_dependencies():
         print("❌ 依赖包检查失败，请安装必要的包后重试")

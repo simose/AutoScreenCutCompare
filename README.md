@@ -169,9 +169,9 @@ python run_auto_screen_cut.py
 
 或使用命令行参数：
 ```
-python run_auto_screen_cut.py --type B        # 直接指定类型为B
-python run_auto_screen_cut.py --type A        # 直接指定类型为A
-python run_auto_screen_cut.py --type B --skip-compare  # B类型但跳过对比
+python run_auto_screen_cut_compare.py --type B        # 直接指定类型为B
+python run_auto_screen_cut_compare.py --type A        # 直接指定类型为A
+python run_auto_screen_cut_compare.py --type A --skip-compare  # A类型但跳过对比
 ```
 
 流程：
@@ -249,7 +249,7 @@ function diffTest(imgPath1, imgPath2, diffPath, options, expectedMismatch)
 #### 方法二：直接运行 pytest
 
 ```
-pytest ScreenShot/screenshots.py -v -s
+pytest run_auto_screen_cut_compare.py -v -s
 ```
 
 注意：直接运行pytest时，需要手动设置环境变量 `PREFIX_TYPE` 或通过交互式输入选择A/B类型。
