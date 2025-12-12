@@ -26,6 +26,14 @@ def test_take_full_page_screenshots(url):
         base_page.wait(2)
         base_page.maximize_window()
 
+        # 等待2秒：注入 JS 脚本以自动移除配置的弹窗元素
+        base_page.wait(2)
+        base_page.inject_auto_popup_remover()
+
+        # 等待2秒：手动触发一次弹窗移除 (JS)
+        base_page.wait(2)
+        base_page.remove_configured_popups()
+
         # 等待2秒：处理弹窗前
         base_page.wait(2)
         base_page.close_popups()

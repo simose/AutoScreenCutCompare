@@ -68,8 +68,11 @@ def run_image_compare():
         try:
             diff_prefix = config["output"]["diffPrefix"]
             deleted_count = 0
+            # 支持的图片扩展名
+            valid_extensions = ('.png', '.jpg', '.jpeg', '.webp')
+            
             for filename in os.listdir(img_dir):
-                if filename.startswith(diff_prefix) and filename.endswith('.png'):
+                if filename.startswith(diff_prefix) and filename.lower().endswith(valid_extensions):
                     file_path = os.path.join(img_dir, filename)
                     os.remove(file_path)
                     deleted_count += 1
@@ -109,8 +112,11 @@ def run_image_compare():
             # 检查是否有差异图片生成（扫描配置前缀开头的文件）
             diff_prefix = config["output"]["diffPrefix"]
             diff_files = []
+            # 支持的图片扩展名
+            valid_extensions = ('.png', '.jpg', '.jpeg', '.webp')
+            
             for file in os.listdir(img_dir):
-                if file.startswith(diff_prefix) and file.endswith('.png'):
+                if file.startswith(diff_prefix) and file.lower().endswith(valid_extensions):
                     diff_files.append(os.path.join(img_dir, file))
             
             if diff_files:

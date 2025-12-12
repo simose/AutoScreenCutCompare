@@ -17,7 +17,7 @@ function loadConfig() {
       filePatterns: {
         suffixA: '_A_',
         suffixB: '_B_',
-        fileExtension: '.png'
+        fileExtension: ['.png', '.jpg', '.jpeg', '.webp']
       },
       comparison: {
         threshold: 1,
@@ -150,8 +150,8 @@ function compareImagePair(pair) {
           const idx = (y * width + x) * 4;
           // diff 的 alpha 通道非 0 表示该像素存在差异
           if (diff.data[idx + 3] !== 0) {
-            overlay.data[idx] = 255;     // R 红色高亮
-            overlay.data[idx + 1] = 0;   // G
+            overlay.data[idx] = 0;     // R 红色高亮
+            overlay.data[idx + 1] = 255;   // G
             overlay.data[idx + 2] = 0;   // B
             overlay.data[idx + 3] = 255; // A 不透明
           }

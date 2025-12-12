@@ -6,7 +6,7 @@
 
 本工具提供两种截图模式：
 - **滚动截图** (默认): 模拟用户滚动，逐屏截取并保存为连续编号的图片。
-- **整页截图**: 利用 Playwright 的 `full_page=True` 选项，一次性截取整个网页。
+- **整页截图**: 利用 Playwright 的 `full_page=True` 选项，**在自动滚动加载所有资源后**，一次性截取整个网页。
 
 您可以通过修改配置文件轻松切换模式。
 
@@ -56,6 +56,8 @@ B对于基准A的对比结果
 ### 关键特性
 
 - **灵活截图模式**: 支持可配置的整页截图或滚动分屏截图，满足不同测试场景的需求。
+- **智能弹窗处理**: 支持通过 CSS 选择器配置自动拦截并移除页面弹窗。
+- **懒加载支持**: 全页截图模式下会自动滚动到底部以触发懒加载资源，确保截图内容完整。
 - **PO 模式**：`pages/base_page.py` 封装页面操作，代码清晰易维护
 - **多 URL 批量测试**：从 `config/config.py` 读取 URL 列表
 - **A/B 流程控制**：
@@ -70,10 +72,17 @@ B对于基准A的对比结果
 ```python
 # 是否使用整页截图模式 (True: 整页截图, False: 滚动截图)
 USE_FULL_PAGE_SCREENSHOT = False
+
+# 需要强制移除的弹窗选择器列表 (CSS选择器)
+POPUP_SELECTORS = [
+    ".swiper-slide.announce-swiper-slide.announce-swiper-slide-1",
+    ".needsclick.klaviyo-form...",
+    # ...
+]
 ```
 
 - **滚动截图** (`False`): 模拟用户滚动，逐屏截取并保存为 `homepage_A_001.png`, `homepage_A_002.png` 等连续编号的图片。适用于内容较长、有懒加载的页面。
-- **整页截图** (`True`): 一次性截取整个网页，保存为 `homepage_A_full.png`。适用于需要完整页面视图的对比场景。
+- **整页截图** (`True`): 自动滚动到底部加载所有资源，然后一次性截取整个网页，保存为 `homepage_A_full.png`。适用于需要完整页面视图的对比场景。
 
 **注意**: 无论使用哪种模式，截图的命名规范（A/B类型、前缀）都保持一致，确保与后续的像素对比工具兼容。
  
@@ -84,10 +93,10 @@ USE_FULL_PAGE_SCREENSHOT = False
 AutoScreenCutCompare/
 ├── config/
 │   ├── __init__.py
-│   └── config.py                    # URL配置和截图目录配置
+│   └── config.py                    # URL配置、截图目录及弹窗选择器配置
 ├── pages/
 │   ├── __init__.py
-│   └── base_page.py                 # 页面操作基类（PO模式）
+│   └── base_page.py                 # 页面操作基类（PO模式，含弹窗清理与滚动逻辑）
 ├── ScreenShot/
 │   ├── __init__.py
 │   ├── full_page_screenshots.py     # 全屏截图
@@ -102,7 +111,7 @@ AutoScreenCutCompare/
 │   ├── package-lock.json            # 依赖锁定文件
 │   ├── README.md                    # PixLCompare模块说明
 │   ├── CONFIG_README.md             # 配置说明文档
-│   ├── run_compare.py               # 图片对比执行脚本
+│   ├── run_compare.py               # 图片对比执行脚本（支持 png/jpg/jpeg/webp）
 │   └── scripts/
 │       └── node/
 │           └── compare.js           # Node.js图片对比脚本
@@ -153,6 +162,9 @@ URLS = [
 
 # 截图保存目录
 SCREENSHOTS_DIR = "D:\\AutoScreenCut"
+
+# 弹窗清理配置
+POPUP_SELECTORS = [ ... ]
 ```
 
 如需自定义对比输出与阈值，配置 `PixLCompare/config.json`。
@@ -189,9 +201,11 @@ python run_auto_screen_cut_compare.py --type A --skip-compare  # 类型为A，�
 3. **执行截图测试**（`Plan_execut.py` 的 `run_tests`）：
    - 运行 `pytest ScreenShot/screenshots.py -v -s`
    - 截图保存到配置的目录
+   - **自动移除配置的弹窗**，确截图画面纯净
 
 4. **执行图片对比**（仅B类型，`Plan_execut.py` 的 `run_compare`）：
    - 自动调用 `PixLCompare/run_compare.py` 完成像素对比
+   - 支持 `.png`, `.jpg`, `.jpeg`, `.webp` 等多种格式
    - 生成差异图（前缀见 `PixLCompare/config.json` 的 `output.diffPrefix`）
 
 说明：可通过多种方式传递A/B类型：
@@ -287,6 +301,7 @@ pytest run_auto_screen_cut_compare.py -v -s
 - **`pages/base_page.py`**（PO模式基类）：
   - `navigate`、`maximize_window`、`close_popups` 封装常用操作
   - `take_full_page_screenshots` 实现滚动分屏截图与文件清理
+  - **增强的全页截图**：先滚动到底部触发懒加载，再进行截图
   - `wait(seconds)` 提供节拍等待（测试中统一以 2s 为基准）
 
 - **`ScreenShot/screenshots.py`**（pytest测试用例）：
